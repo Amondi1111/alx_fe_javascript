@@ -3,7 +3,7 @@
 // =============================
 
 //  Array of Quotes
-let quotes = [
+let quotes =  JSON.parse(localStorage.getItem('quotes')) ||[
   { text: "The best way to predict the future is to create it.", category: "Motivation" },
   { text: "Life is what happens when you're busy making other plans.", category: "Life" },
   { text: "You miss 100% of the shots you don’t take.", category: "Motivation" },
@@ -13,6 +13,8 @@ let quotes = [
 
 const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteButton = document.getElementById("newQuote");
+
+
 
 // ------------------------------
 // Function: Display Random Quotes
@@ -25,6 +27,10 @@ function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
   quoteDisplay.innerHTML = `<strong>${quote.category}</strong>: "${quote.text}"`;
+
+
+ // Save to sessionStorage
+  sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
 // ------------------------------
@@ -80,7 +86,67 @@ function addQuote(text, category) {
   quoteDisplay.innerHTML = `<strong>${category}</strong>: "${text}"`;
 }
 
-newQuoteButton.addEventListener("click", showRandomQuote);
+// ------------------------------
+// Function: Save to localStorageFunction
+// ------------------------------
+function saveQuotes() {
+  localStorage.setItem("quotes", JSON.stringify(quotes));
+}
 
-// Dynamically build the add quote
+// ------------------------------
+// Function: Import JSON
+// ------------------------------
+function importFromJsonFile(event) {
+  const fileReader = new FileReader();
+  fileReader.onload = function(e) {
+    try {
+      const importedQuotes = JSON.parse(e.target.result);
+      if (!Array.isArray(importedQuotes)) throw "Invalid JSON format";
+      quotes.push(...importedQuotes);
+      saveQuotes();
+      alert("Quotes imported successfully!");
+    } catch (err) {
+      alert("Failed to import quotes: " + err);
+    }
+  };
+  fileReader.readAsText(event.target.files[0]);
+}
+
+// ------------------------------
+// Function: Export JSON
+// ------------------------------
+function exportToJsonFile() {
+  const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quotes.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ------------------------------
+// Restore last viewed quote from session
+// ------------------------------
+const lastQuote = JSON.parse(sessionStorage.getItem("lastQuote"));
+if (lastQuote) {
+  quoteDisplay.innerHTML = `<strong>${lastQuote.category}</strong>: "${lastQuote.text}"`;
+}
+
+// Setup event listener
+newQuoteButton.addEventListener("click", showRandomQuote);
 createAddQuoteForm();
+
+// Dynamically add import and export controls
+document.body.appendChild(document.createElement("h2")).textContent = "Import / Export Quotes";
+const importInput = document.createElement("input");
+importInput.type = "file";
+importInput.accept = ".json";
+importInput.addEventListener("change", importFromJsonFile);
+
+const exportButton = document.createElement("button");
+exportButton.textContent = "Export Quotes";
+exportButton.addEventListener("click", exportToJsonFile);
+
+document.body.appendChild(importInput);
+document.body.appendChild(exportButton);
